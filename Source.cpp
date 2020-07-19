@@ -52,7 +52,7 @@ int initialize() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "A Safe Spot", NULL, NULL);
+    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Stereo Reconstruction", NULL, NULL);
 
     if (window == NULL)
     {
@@ -106,12 +106,17 @@ void findPoints() {
             rightImage[i][j] = rightImgPixel;
             left_image += 3;
             right_image += 3;
+            if (comp == 4)
+            {
+                left_image += 1;
+                right_image += 1;
+            }
             //std::cout << leftImage[i][j][0] << " " << leftImage[i][j][1] << " " << leftImage[i][j][2] << "\n";
         }
         //std::cout << "\n";
     }
 
-    const int dispAbs = 10,windowSizeX=5, windowSizeY = 5;
+    const int dispAbs = 2,windowSizeX=2, windowSizeY = 2;
 
     ofstream Output_Image("Output.ppm");
     if (Output_Image.is_open())
@@ -157,7 +162,7 @@ void findPoints() {
             disp[i][j] = bestDisp;
             //if (disp[i][j])
             {
-                Output_Image << (int)(255 * (bestWindowCost*100-(int) (bestWindowCost * 100))) << ' ' << (int)(255 * (bestWindowCost * 100 - (int)(bestWindowCost * 100))) << ' ' << (int)(255 * (bestWindowCost * 100 - (int)(bestWindowCost * 100))) << "\n";
+                Output_Image << 255-(int)(255 * (bestWindowCost*10-(int) (bestWindowCost * 10))) << ' ' << 255-(int)(255 * (bestWindowCost * 10 - (int)(bestWindowCost * 10))) << ' ' <<255- (int)(255 * (bestWindowCost * 10 - (int)(bestWindowCost * 10))) << "\n";
                 //std::cout << bestWindowCost << "\n";
             }
         }
@@ -168,7 +173,23 @@ void findPoints() {
     return ;
 }
 
-void loadImages() {
+void loadImagesPNG() {
+
+    string imageToLoad = "./Images/L_3.png";
+    left_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb_alpha);
+    if (left_image == nullptr) {
+        throw(string("Failed to load snow texture"));
+    }
+    imageToLoad = "./Images/R_3.png";
+    right_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb_alpha);
+    if (right_image == nullptr) {
+        throw(string("Failed to load snow texture"));
+    }
+    //std::cout << (float)*left_image << " " << (float)*(left_image+1) << " " << (float)*(left_image + 2) << " " << (float)*(left_image + 3)<<"\n";
+    return;
+}
+
+void loadImagesJPG() {
 
     string imageToLoad = "./Images/L_1.jpg";
     left_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb);
@@ -200,11 +221,14 @@ void processInput(GLFWwindow* window)
 }
 
 int main() {
-    if (initialize() < 0)
-        return -1;
-    loadImages();
+    
+    loadImagesJPG();
     genCameraMatrices();
     findPoints();
+    
+    if (initialize() < 0)
+        return -1;
+    
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
