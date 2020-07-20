@@ -116,7 +116,7 @@ void findPoints() {
     int** disp = new int* [h];
     for (int i = 0; i < h; i++)
         disp[i] = new int[w];
-
+    
     for (int i = h-1;i >=0;i--)
     {
         for (int j = 0;j < w;j++) {
@@ -136,8 +136,8 @@ void findPoints() {
         //std::cout << "\n";
     }
 
-    const int dispAbs = 8,windowSizeX=3, windowSizeY = 5;
-
+    const int dispAbs = 75,windowSizeX=9, windowSizeY = 9;
+    int maxDisp = INT_MIN;
     ofstream Output_Image("Output.ppm");
     if (Output_Image.is_open())
     {
@@ -148,22 +148,25 @@ void findPoints() {
 
             double disparities[2 * dispAbs - 1] = { FLT_MIN };
 
-            for (int d = -dispAbs+1;d < dispAbs;d++) {
+            for (int d = -dispAbs+1;d <= 0;d++) {
                 //Calc window cost
                 double windowCost = 0.0f;
-                double flfr=0.0f, fl2=0.0f, fr2=0.0f;
-                for (int k = 0;k <= windowSizeX;k++) {
-                    for (int l = 0;l < windowSizeY;l++) {
-                        if (j + k >= w || i + l + d >= h || i + l + d < 0 || i + l>=h)
+                double flfr = 0.0f;
+                double fl2 = 0.0f;
+                double fr2 = 0.0f;
+                for (int k = -windowSizeX;k <= windowSizeX;k++) {
+                    for (int l = -windowSizeY;l <= windowSizeY;l++) {
+                        if (j + k +d >= w || i + l >= h|| i + l<0||j+k<0 || j+k+d < 0 || j+k>=w)
                             continue;
-                        double intensityAtPixelLeft = (0.2126 * leftImage[i + l][j + k][0] + 0.7152 * leftImage[i + l][j + k][1] + 0.0722 * leftImage[i + l][j + k][2])/255.0f;
-                        double intensityAtPixelRight = (0.2126 * rightImage[i + l + d][j + k][0] + 0.7152 * rightImage[i + l + d][j + k][1] + 0.0722 * rightImage[i + l + d][j + k][2]) / 255.0f;
-                        flfr += intensityAtPixelLeft * intensityAtPixelRight;
+                        double intensityAtPixelLeft = (0.2126 * leftImage[i + l][j + k][0] + 0.7152 * leftImage[i + l][j + k][1] + 0.0722 * leftImage[i + l][j + k][2]);
+                        double intensityAtPixelRight = (0.2126 * rightImage[i + l ][j + k + d][0] + 0.7152 * rightImage[i + l ][j + k +d][1] + 0.0722 * rightImage[i + l ][j + k+d][2]);
+                        windowCost += pow(intensityAtPixelLeft - intensityAtPixelRight, 2);
+                        /*flfr += intensityAtPixelLeft * intensityAtPixelRight;
                         fl2 += intensityAtPixelLeft * intensityAtPixelLeft;
-                        fr2 += intensityAtPixelRight * intensityAtPixelRight;
+                        fr2 += intensityAtPixelRight * intensityAtPixelRight;*/
                     }
                 }
-                windowCost = flfr / (sqrt(fl2*fr2));
+                //windowCost = flfr / (sqrt(fl2*fr2));
                 //std::cout << flfr<<" "<<fl2<<" "<< fr2 << " ";
                 disparities[d - 1 + dispAbs] = windowCost;
             }
@@ -175,16 +178,25 @@ void findPoints() {
                 //std::cout << disparities[d - 1 + dispAbs] << " ";
                 if (disparities[d - 1 + dispAbs] > bestWindowCost)
                 {
-                    bestDisp = d;
+                    bestDisp = -d;
                     bestWindowCost = disparities[d - 1 + dispAbs];
                 }
             }
             disp[i][j] = bestDisp;
+            if (disp[i][j] > maxDisp)
+                maxDisp = disp[i][j];
             //if (disp[i][j])
             {
-                Output_Image << 255-(int)(255 * (bestWindowCost*10-(int) (bestWindowCost * 10))) << ' ' << 255-(int)(255 * (bestWindowCost * 10 - (int)(bestWindowCost * 10))) << ' ' <<255- (int)(255 * (bestWindowCost * 10 - (int)(bestWindowCost * 10))) << "\n";
+                //Output_Image << 255 - (int)(255 * (bestWindowCost)) << ' ' << 255 - (int)(255 * (bestWindowCost)) << ' ' << 255 - (int)(255 * (bestWindowCost)) << "\n";
+                //Output_Image << 255-(int)(255 * (bestWindowCost*10-(int) (bestWindowCost * 10))) << ' ' << 255-(int)(255 * (bestWindowCost * 10 - (int)(bestWindowCost * 10))) << ' ' <<255- (int)(255 * (bestWindowCost * 10 - (int)(bestWindowCost * 10))) << "\n";
                 //std::cout << bestWindowCost << "\n";
             }
+        }
+    }
+    for (int i = h-1;i >=0 ;i--) {
+        for (int j = 0;j < w;j++) {
+            Output_Image << (int)(255*(float)disp[i][j]/(float)maxDisp) << ' ' << (int)(255 * (float)disp[i][j] / (float)maxDisp) << ' ' << (int)(255 * (float)disp[i][j] / (float)maxDisp) << "\n";
+
         }
     }
 
@@ -241,12 +253,12 @@ void loadImagesPNG() {
 
 void loadImagesJPG() {
 
-    string imageToLoad = "./Images/L_1.jpg";
+    string imageToLoad = "./Images/R_1.jpg";
     left_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb);
     if (left_image == nullptr) {
         throw(string("Failed to load snow texture"));
     }
-    imageToLoad = "./Images/R_1.jpg";
+    imageToLoad = "./Images/L_1.jpg";
     right_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb);
     if (right_image == nullptr) {
         throw(string("Failed to load snow texture"));
@@ -275,7 +287,7 @@ int main() {
     if (initialize() < 0)
         return -1;
 
-    loadImagesJPG();
+    loadImagesPNG();
     genCameraMatrices();
     findPoints();
     
