@@ -104,6 +104,177 @@ glm::vec3 intersect(Ray& rayCamOne, Ray& rayCamTwo) {
     return glm::vec3(rayCamOne.origin+u*rayCamOne.direction);
 }
 
+void findPointsTwo() {
+    float** leftImage = new float * [h+8];
+    for (int i = 0; i < h+8; i++)
+        leftImage[i] = new float[w+8];
+    std::cout << h + 8 << " " << w + 8 << "\n";
+    float** rightImage = new float * [h+8];
+    for (int i = 0; i < h+8; i++)
+        rightImage[i] = new float[w+8];
+
+    int** disp = new int* [h+8];
+    for (int i = 0; i < h+8; i++)
+        disp[i] = new int[w+8];
+
+    for (int i = h - 1 + 8;i >= 0;i--)
+    {
+        for (int j = 0;j < w + 8;j++) {
+
+            if (i <= 3 || j <= 3 || h - 1 + 8 - i <= 3 || w - 1 + 8 - j <= 3)
+            {
+                //std::cout << "here" << " ";
+                leftImage[i][j] = 0.0f;
+                rightImage[i][j] = 0.0f;
+                disp[i][j] = 0;
+                continue;
+            }
+            //double intensityAtPixelLeft = (0.2126 * leftImage[i + l][j + k][0] + 0.7152 * leftImage[i + l][j + k][1] + 0.0722 * leftImage[i + l][j + k][2]);
+            float leftImgPixel = 0.2126 * (float)*left_image + 0.7152 * (float)*(left_image + 1) + 0.0722 * (float)*(left_image + 2);
+            float rightImgPixel = 0.2126 * (float)*right_image + 0.7152 * (float)*(right_image + 1) + 0.0722 * (float)*(right_image + 2);
+            leftImage[i][j] = leftImgPixel;
+            rightImage[i][j] = rightImgPixel;
+            disp[i][j] = 0;
+            left_image += 3;
+            right_image += 3;
+            if (comp == 4)
+            {
+                left_image += 1;
+                right_image += 1;
+            }
+            //std::cout << leftImage[i][j][0] << " " << leftImage[i][j][1] << " " << leftImage[i][j][2] << "\n";
+        }
+        //std::cout << "\n";
+    }
+    ofstream Output_Image("Output.ppm");
+    if (Output_Image.is_open())
+    {
+        Output_Image << "P3\n" << w+8 << " " << h+8 << " 255\n";
+    }
+    for (int i = 4;i < h+8-4;i++) {
+        for (int j = 4;j < w + 8 - 4;j++) {
+
+            float arr[9][9] = { 0 };
+            int tempX = 0, tempY = 0;
+            for (int row = i - 4;row < i + 5;row++){
+                for (int col = j - 4;col < j + 5;col++){
+                    arr[tempX][tempY] = leftImage[row][col];
+                    tempY++;
+                }
+                tempX++;
+                tempY = 0;
+            }
+
+            float minSSD = FLT_MAX;
+            int minSSDIndex = -1; 
+
+            for (int k = j - 75;k < j;k++) {
+                if (k <= 5)
+                    k = 5;
+
+                float arr2[9][9] = { 0 };
+                int tempX = 0, tempY = 0;
+                for (int row = i - 4;row < i + 5;row++) {
+                    for (int col = k - 4;col < k + 5;col++) {
+                        //std::cout << row << " " << col << " " << tempX << " " << tempY << "\n";
+                        arr2[tempX][tempY] = rightImage[row][col];
+                        tempY++;
+                    }
+                    tempX++;
+                    tempY = 0;
+                }
+
+                float diff[9][9];
+                for (int i = 0;i < 9;i++) {
+                    for (int j = 0;j < 9;j++) {
+                        //diff[i][j] = pow(arr[i][j] - arr2[i][j], 2);
+                        diff[i][j] = abs(arr[i][j]-arr2[i][j]);
+                    }
+                }
+                float sum = 0;
+                for (int i = 0;i < 9;i++) {
+                    for (int j = 0;j < 9;j++) {
+                        sum += diff[i][j];  
+                    }
+                }
+                if (sum < minSSD)
+                {
+                    minSSD = sum;
+                    minSSDIndex = k;
+                }
+            }
+            
+            disp[i][j] = j - minSSDIndex;
+            if (disp[i][j] < 0)
+                disp[i][j] = 0;
+        }
+    }
+    int maxVal = INT_MIN;
+    h += 8;
+    w += 8;
+    for (int i = h - 1;i >= 0;i--) {
+        for (int j = 0;j < w;j++) {
+            //Output_Image << (int)(255 * (float)disp[i][j] / (float)maxDisp) << ' ' << (int)(255 * (float)disp[i][j] / (float)maxDisp) << ' ' << (int)(255 * (float)disp[i][j] / (float)maxDisp) << "\n";
+            //std::cout << disp[i][j];
+            if (disp[i][j] > maxVal)
+                maxVal = disp[i][j];
+        }
+    }
+    std::cout << maxVal;
+
+    float** disp2 = new float* [h ];
+    for (int i = 0; i < h ; i++)
+        disp2[i] = new float[w ];
+
+    for (int i = h - 1;i >= 0;i--) {
+        for (int j = 0;j < w;j++) {
+            //Output_Image << (int)(255 * (float)disp[i][j] / (float)maxDisp) << ' ' << (int)(255 * (float)disp[i][j] / (float)maxDisp) << ' ' << (int)(255 * (float)disp[i][j] / (float)maxDisp) << "\n";
+            disp2[i][j] = (float)disp[i][j]/ (float)maxVal;
+            //std::cout << disp[i][j] << "\n";
+        }
+    }
+
+    for (int i = h - 1;i >= 0;i--) {
+        for (int j = 0;j < w;j++) {
+            Output_Image << (int)(255 * (float)disp2[i][j]) << ' ' << (int)(255 * (float)disp2[i][j]) << ' ' << (int)(255 * (float)disp2[i][j] ) << "\n";
+            //Output_Image << ((float)disp2[i][j]) << ' ' << ((float)disp2[i][j]) << ' ' << ((float)disp2[i][j]) << "\n";
+            //Output_Image << (disp[i][j]) << ' ' << (disp[i][j]) << ' ' << (disp[i][j]) << "\n";
+
+            //disp[i][j] = disp[i][j] / maxVal;
+        }
+    }
+    for (int i = 0; i < h; i++)
+        delete[] leftImage[i];
+    delete[] leftImage;
+    for (int i = 0; i < h; i++)
+        delete[] rightImage[i];
+    delete[] rightImage;
+
+    for (int i = 0; i < h; i++) {
+        for (int j = 0;j < w;j++) {
+            //Output_Image << disp[i][j] << "\n";
+           
+            float depth = baseline * focalLength / (disp[i][j] + dOffset);
+            //std::cout << disp[i][j] << "\n";
+            points.push_back(glm::vec3(j / 2.0, i / 2.0, (depth / 100.0 - 58.0) * 10.0f));
+        }
+    }
+
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    Output_Image.close();
+    WinExec("cd ..", 1);
+    WinExec("magick \"./Output.ppm\" \"./Output.png\"", 1);
+    return;
+}
+
+
 void findPoints() {
     glm::vec3** leftImage = new glm::vec3*[h];
     for (int i = 0; i < h; i++)
@@ -289,7 +460,7 @@ int main() {
 
     loadImagesPNG();
     genCameraMatrices();
-    findPoints();
+    findPointsTwo();
     
     
     Shader shaderProgram("vShader.vertexShader.glsl", "fShader.fragmentShader.glsl");
