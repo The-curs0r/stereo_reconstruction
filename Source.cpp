@@ -44,8 +44,12 @@ vector<glm::vec3> points;
 GLuint vao;
 GLuint vbo;
 
+GLuint texture;
+
 float minDepth = FLT_MAX;
 float maxDepth = FLT_MIN;
+
+float maxX=INT_MIN, maxY=INT_MIN;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -162,7 +166,7 @@ void findPoints() {
                 float minSSD = FLT_MAX;
                 int minSSDIndex = -1;
 
-                for (int k = j - 5;k < j;k++) {
+                for (int k = j - 75;k < j;k++) {
                     if (k <= 5)
                         k = 5;
 
@@ -238,8 +242,13 @@ void findPoints() {
 
 
 
-        for (int i = 0; i < h; i++) {
-            for (int j = 0;j < w;j++) {
+        for (int i = 4; i < h-4; i++) {
+            for (int j = 4;j < w-4;j++) {
+
+                /*if (i <= 3 || j <= 3 || h - 1 - i <= 3 || w - 1 - j <= 3)
+                {
+                    continue;
+                }*/
 
                 float depth = baseline * focalLength / (disp[i][j] + dOffset);
 
@@ -250,9 +259,17 @@ void findPoints() {
                 else if (depth > maxDepth) {
                     maxDepth = depth;
                 }
+                if (j / 2.0 > maxX)
+                    maxX = j / 2.0;
+                if (i / 2.0 > maxY)
+                    maxY = i / 2.0;
                 points.push_back(glm::vec3(j / 2.0, i / 2.0, depth));
             }
         }
+
+        
+        //stbi_image_free(left_image);
+        //stbi_image_free(right_image);
 
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
@@ -275,6 +292,23 @@ void loadImagesPNG() {
     if (left_image == nullptr) {
         throw(string("Failed to load left image"));
     }
+
+    glEnable(GL_TEXTURE_2D);
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (comp == 3) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, left_image);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else if (comp == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, left_image);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+
     imageToLoad = "./Images/R_3.png";
     right_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb_alpha);
     if (right_image == nullptr) {
@@ -289,6 +323,23 @@ void loadImagesJPG() {
     if (left_image == nullptr) {
         throw(string("Failed to load left image"));
     }
+
+    glEnable(GL_TEXTURE_2D);
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (comp == 3) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w - 8, h - 8, 0, GL_RGB, GL_UNSIGNED_BYTE, left_image);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else if (comp == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w - 8, h - 8, 0, GL_RGBA, GL_UNSIGNED_BYTE, left_image);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+
     imageToLoad = "./Images/R_1.jpg";
     right_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb);
     if (right_image == nullptr) {
@@ -317,7 +368,7 @@ int main() {
     if (initialize() < 0)
         return -1;
 
-    loadImagesJPG();
+    loadImagesPNG();
     genCameraMatrices();
     findPoints();
     
@@ -335,7 +386,9 @@ int main() {
         shaderProgram.setMat4("proj_matrix", proj_matrix);
         shaderProgram.setFloat("minDepth", minDepth);
         shaderProgram.setFloat("maxDepth", maxDepth);
-
+        shaderProgram.setFloat("maxX", maxX);
+        shaderProgram.setFloat("maxY", maxY);
+        //std::cout << maxX << " " << maxY << "\n";
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.2f, 0.2f, 0.2f, 0.0f);   
@@ -343,6 +396,10 @@ int main() {
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(points), &points[0], GL_STATIC_DRAW);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+
         glDrawArrays(GL_POINTS, 0, points.size());
 
         glfwSwapBuffers(window);
