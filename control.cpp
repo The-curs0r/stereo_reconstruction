@@ -80,5 +80,5 @@ void calcMatrixFromInp(GLFWwindow* window) {
 	viewMatrix = glm::lookAt(position, position + direction, up);
 	lastTime = current;
 	//projMatrix = glm::perspective(glm::radians(FoV), (float)(1920.0 / 1080.0), 0.1f, 10000.0f);
-	projMatrix = glm::ortho(-500.0f,500.0f,-500.0f,500.0f,-500.0f,500.0f);
+	projMatrix = glm::ortho(-300.0f,300.0f,-300.0f,300.0f,-300.0f,300.0f);
 }

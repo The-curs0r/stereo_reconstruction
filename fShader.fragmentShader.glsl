@@ -13,7 +13,7 @@ in VS_OUT{
 }fs_in;
 
 void main(void) {
-	color = vec4((fs_in.vertexCoord[2] - minDepth) * 0.5 / (maxDepth - minDepth) + 0.5, (fs_in.vertexCoord[2] - minDepth) * 0.5 / (maxDepth - minDepth) + 0.5, (fs_in.vertexCoord[2] - minDepth) * 0.5 / (maxDepth - minDepth) + 0.5, 1.0);
-	color *= texture(img_texture, fs_in.uv);
+	//color = vec4((fs_in.vertexCoord[2] - minDepth) * 0.5 / (maxDepth - minDepth) + 0.5, (fs_in.vertexCoord[2] - minDepth) * 0.5 / (maxDepth - minDepth) + 0.5, (fs_in.vertexCoord[2] - minDepth) * 0.5 / (maxDepth - minDepth) + 0.5, 1.0);
+	color = texture(img_texture, fs_in.uv);
 }
 

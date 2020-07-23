@@ -34,11 +34,11 @@ glm::mat3 cameraTwo ;
 glm::mat3 calibMatrixOne;
 glm::mat3 calibMatrixTwo;
 
-float focalLength = 3997.684;//Initialize
-float prinPointX = 1176.728;//Initialize
-float prinPointY = 1011.728;//Initialize
-float dOffset = 131.111;//Initialize
-float baseline = 193.001;//Initialize
+float focalLength = 5806.559;//Initialize
+float prinPointX = 1429.219;//Initialize
+float prinPointY = 993.403;//Initialize
+float dOffset = 114.291;//Initialize
+float baseline = 174.019;//Initialize
 
 vector<glm::vec3> points;
 GLuint vao;
@@ -166,7 +166,7 @@ void findPoints() {
                 float minSSD = FLT_MAX;
                 int minSSDIndex = -1;
 
-                for (int k = j - 75;k < j;k++) {
+                for (int k = j - (int)dOffset;k < j;k++) {
                     if (k <= 5)
                         k = 5;
 
@@ -184,8 +184,8 @@ void findPoints() {
                     float diff[9][9];
                     for (int i = 0;i < 9;i++) {
                         for (int j = 0;j < 9;j++) {
-                            diff[i][j] = abs(arr[i][j] - arr2[i][j]);
-                            //diff[i][j] = pow(arr[i][j] - arr2[i][j],2);
+                            //diff[i][j] = abs(arr[i][j] - arr2[i][j]);
+                            diff[i][j] = pow(arr[i][j] - arr2[i][j],2);
                         }
                     }
                     float sum = 0;
@@ -259,11 +259,11 @@ void findPoints() {
                 else if (depth > maxDepth) {
                     maxDepth = depth;
                 }
-                if (j / 2.0 > maxX)
-                    maxX = j / 2.0;
-                if (i / 2.0 > maxY)
-                    maxY = i / 2.0;
-                points.push_back(glm::vec3(j / 2.0, i / 2.0, depth));
+                if (j/2.0 > maxX)
+                    maxX = j/2.0 ;
+                if (i/2.0  > maxY)
+                    maxY = i/2.0 ;
+                points.push_back(glm::vec3(j/2.0 ,i/2.0, depth));
             }
         }
 
@@ -287,11 +287,14 @@ void findPoints() {
 }
 
 void loadImagesPNG() {
-    string imageToLoad = "./Images/L_3.png";
+    string imageToLoad = "./Images/L_11.png";
     left_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb_alpha);
     if (left_image == nullptr) {
+        std::cout << "Failed to load left image" << "\n";
         throw(string("Failed to load left image"));
     }
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     glEnable(GL_TEXTURE_2D);
     glGenTextures(1, &texture);
@@ -301,6 +304,7 @@ void loadImagesPNG() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     if (comp == 3) {
+        left_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, left_image);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
@@ -309,16 +313,22 @@ void loadImagesPNG() {
         glGenerateMipmap(GL_TEXTURE_2D);
     }
 
-    imageToLoad = "./Images/R_3.png";
-    right_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb_alpha);
+    string imageToLoad2 = "./Images/R_11.png";
+    right_image = stbi_load(imageToLoad2.c_str(), &w, &h, &comp, STBI_rgb_alpha);
     if (right_image == nullptr) {
+        std::cout << "Failed to load right image"<<"\n";
         throw(string("Failed to load right image"));
     }
+    if (comp == 3) {
+        right_image = stbi_load(imageToLoad2.c_str(), &w, &h, &comp, STBI_rgb);
+    }
+    std::cout << comp << "\n";
+
     return;
 }
 
 void loadImagesJPG() {
-    string imageToLoad = "./Images/L_1.jpg";
+    string imageToLoad = "./Images/L_8.jpg";
     left_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb);
     if (left_image == nullptr) {
         throw(string("Failed to load left image"));
@@ -388,7 +398,6 @@ int main() {
         shaderProgram.setFloat("maxDepth", maxDepth);
         shaderProgram.setFloat("maxX", maxX);
         shaderProgram.setFloat("maxY", maxY);
-        //std::cout << maxX << " " << maxY << "\n";
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.2f, 0.2f, 0.2f, 0.0f);   
