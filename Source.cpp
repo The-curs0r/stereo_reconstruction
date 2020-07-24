@@ -267,6 +267,163 @@ void findPoints() {
     return;
 }
 
+void findPointsDynamic() {
+
+    float** leftImage = new float* [h];
+    for (int i = 0; i < h; i++)
+        leftImage[i] = new float[w];
+
+    float** rightImage = new float* [h];
+    for (int i = 0; i < h; i++)
+        rightImage[i] = new float[w];
+
+    int** disp = new int* [h];
+    for (int i = 0; i < h; i++)
+        disp[i] = new int[w];
+
+    /*int** dispRight = new int* [h];
+    for (int i = 0; i < h; i++)
+        dispRight[i] = new int[w];*/
+
+    for (int i = h - 1;i >= 0;i--)
+    {
+        for (int j = 0;j < w;j++) {
+
+            /*if (i <= 3 || j <= 3 || h - 1 - i <= 3 || w - 1 - j <= 3)
+            {
+                leftImage[i][j] = 0.0f;
+                rightImage[i][j] = 0.0f;
+                disp[i][j] = 0;
+                dispRight[i][j] = 0;
+                continue;
+            }*/
+            float leftImgPixel = 0.2126 * (float)*left_image + 0.7152 * (float)*(left_image + 1) + 0.0722 * (float)*(left_image + 2);
+            float rightImgPixel = 0.2126 * (float)*right_image + 0.7152 * (float)*(right_image + 1) + 0.0722 * (float)*(right_image + 2);
+            leftImage[i][j] = leftImgPixel;
+            //std::cout << leftImage[i][j] << "\n";
+            rightImage[i][j] = rightImgPixel;
+            disp[i][j] = 0;
+            left_image += 3;
+            right_image += 3;
+            if (comp == 4)
+            {
+                left_image += 1;
+                right_image += 1;
+            }
+        }
+    }
+
+    int maxCost = 20;
+    for (int row = 0;row < h; row++) {
+
+        int** cost = new int* [w];
+        for (int i = 0; i < w; i++)
+            cost[i] = new int[w];
+
+        int** direction = new int* [w];
+        for (int i = 0; i < w; i++)
+            direction[i] = new int[w];
+
+        for (int i = 1;i < w;i++) {
+            cost[i][0] = i * maxCost;
+            cost[0][i] = i * maxCost;
+        }
+
+        for (int i = 1; i < w; i++)
+        {
+            for (int j = 1; j < w; j++)
+            {
+                int min1 = cost[i - 1][j - 1] + abs((int)leftImage[row][i] - (int)rightImage[row][j]);
+                //std::cout << (int)leftImage[row][i] <<" "<< (int)rightImage[row][j]<<"\n";
+                int min2 = cost[i - 1][j] + maxCost;
+                int min3 = cost[i][j-1] + maxCost;
+                int temp = min(min1, min2);
+                int minimumCost = min(temp, min3);
+                cost[i][j] = minimumCost;
+                if (minimumCost == min1)
+                    direction[i][j] = 1;
+                if (minimumCost == min2)
+                    direction[i][j] = 2;
+                if (minimumCost == min3)
+                    direction[i][j] = 3;
+            }
+            //std::cout << "\n";
+        }
+        int p = w - 1, q = w - 1;
+        while (p != 0 && q != 0) {
+            if (direction[p][q] == 1) {
+                disp[row][p] = abs(p - q);
+                //dispRight[row][q] = abs(p - q);
+                p--;
+                q--;
+            }
+            else if (direction[p][q] == 2) {
+                p--;
+            }
+            else if (direction[p][q] == 3) {
+                q--;
+            }
+        }
+        for (int i = 0; i < w; i++)
+            delete[] cost[i];
+        delete[] cost;
+
+        for (int i = 0; i < w; i++)
+            delete[] direction[i];
+        delete[] direction;
+    }
+    ofstream Output_Image("Output.ppm");
+    if (Output_Image.is_open())
+    {
+        Output_Image << "P3\n" << w << " " << h << " 255\n";
+        for (int i = h - 1;i >= 0;i--) {
+            for (int j = 0;j < w;j++) {
+                Output_Image << (disp[i][j]) << ' ' << (disp[i][j]) << ' ' << (disp[i][j]) << "\n";
+            }
+        }
+        Output_Image.close();
+        WinExec("cd ..", 1);
+        WinExec("magick \"./Output.ppm\" \"./Output.png\"", 1);
+    }
+
+    for (int i = 4; i < h - 4; i++) {
+        for (int j = 4;j < w - 4;j++) {
+
+            float depth = baseline * focalLength / (disp[i][j] + dOffset);
+
+            depth = (depth / 100.0 - 58.0) * 10.0f;
+
+            if (depth < minDepth)
+                minDepth = depth;
+            else if (depth > maxDepth) {
+                maxDepth = depth;
+            }
+            if (j / 2.0 > maxX)
+                maxX = j / 2.0;
+            if (i / 2.0 > maxY)
+                maxY = i / 2.0;
+            points.push_back(glm::vec3(j / 2.0, i / 2.0, depth));
+        }
+    }
+
+    for (int i = 0; i < h; i++)
+        delete[] disp[i];
+    delete[] disp;
+
+    //stbi_image_free(left_image);
+    //stbi_image_free(right_image);
+
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+
+
+    return;
+}
 
 void genCameraMatrices() {
     //Implement non corrected images later
@@ -289,10 +446,11 @@ int main() {
     if (initialize() < 0)
         return -1;
 
-    loadImagesPNG(&left_image, &right_image, "./Images/L_11.png", "./Images/R_11.png", texture, w, h, comp);
+    loadImagesPNG(&left_image, &right_image, "./Images/L_4.png", "./Images/R_4.png", texture, w, h, comp);
     //loadImagesJPG(&left_image, &right_image, "./Images/L_1.jpg", "./Images/R_1.jpg", texture, w, h, comp);
     genCameraMatrices();
-    findPoints();
+    //findPoints();
+    findPointsDynamic();
     
     Shader shaderProgram("vShader.vertexShader.glsl", "fShader.fragmentShader.glsl");
     shaderProgram.use();
