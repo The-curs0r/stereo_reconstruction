@@ -103,6 +103,8 @@ void findPoints() {
     for (int i = 0; i < h; i++)
         disp[i] = new int[w];
 
+
+    //Find the intensity value for each pixel by converting RGB to grayscale.
     for (int i = h - 1 ;i >= 0;i--)
     {
         for (int j = 0;j < w ;j++) {
@@ -128,6 +130,7 @@ void findPoints() {
             }
         }
     }
+    //Disparity map written to Output.ppm
     ofstream Output_Image("Output.ppm");
     if (Output_Image.is_open())
     {
@@ -136,6 +139,7 @@ void findPoints() {
         for (int i = 4;i < h  - 4;i++) {
             for (int j = 4;j < w  - 4;j++) {
 
+                //Calculate window in left image
                 float arr[9][9] = { 0 };
                 int tempX = 0, tempY = 0;
                 for (int row = i - 4;row < i + 5;row++) {
@@ -154,6 +158,7 @@ void findPoints() {
                     if (k <= 5)
                         k = 5;
 
+                    //For each k, calculate window in right image
                     float arr2[9][9] = { 0 };
                     int tempX = 0, tempY = 0;
                     for (int row = i - 4;row < i + 5;row++) {
@@ -165,6 +170,7 @@ void findPoints() {
                         tempY = 0;
                     }
 
+                    //Find SSD
                     float diff[9][9];
                     for (int i = 0;i < 9;i++) {
                         for (int j = 0;j < 9;j++) {
@@ -178,6 +184,8 @@ void findPoints() {
                             sum += diff[i][j];
                         }
                     }
+
+                    //Pick best of all SSD
                     if (sum < minSSD)
                     {
                         minSSD = sum;
@@ -185,13 +193,15 @@ void findPoints() {
                     }
                 }
 
+                //Update disparity
                 disp[i][j] = j - minSSDIndex;
                 if (disp[i][j] < 0)
                     disp[i][j] = 0;
             }
         }
+
+        //Divide by maximum disparity
         int maxVal = INT_MIN;
-        
         for (int i = h - 1;i >= 0;i--) {
             for (int j = 0;j < w;j++) {
                 if (disp[i][j] > maxVal)
@@ -227,6 +237,7 @@ void findPoints() {
             delete[] rightImage[i];
         delete[] rightImage;
 
+        //Basic conversion to generate point cloud
         for (int i = 4; i < h-4; i++) {
             for (int j = 4;j <w-4 ;j++) {
 
@@ -251,13 +262,13 @@ void findPoints() {
             delete[] disp[i];
         delete[] disp;
 
+        //Generate vao and vbo
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-
         
     }
     return;
@@ -280,7 +291,8 @@ void findPointsDynamic() {
     /*int** dispRight = new int* [h];
     for (int i = 0; i < h; i++)
         dispRight[i] = new int[w];*/
-
+        
+    //Find the intensity value for each pixel by converting RGB to grayscale.
     for (int i = h - 1;i >= 0;i--)
     {
         for (int j = 0;j < w;j++) {
@@ -300,9 +312,12 @@ void findPointsDynamic() {
         }
     }
 
+
     int OcculsionCost = 40;
+    //For each row
     for (int row = 0;row < h; row++) {
 
+        //Initilize cost and direction arrays
         int** cost = new int* [w];
         for (int i = 0; i < w; i++)
             cost[i] = new int[w];
@@ -316,16 +331,19 @@ void findPointsDynamic() {
             cost[0][i] = i * OcculsionCost;
         }
 
+        
         for (int i = 1; i < w; i++)
         {
             for (int j = 1; j < w; j++)
             {
+                //Find minimum cost match
                 int min1 = cost[i - 1][j - 1] + abs((int)leftImage[row][i] - (int)rightImage[row][j]);
                 int min2 = cost[i - 1][j] + OcculsionCost;
                 int min3 = cost[i][j-1] + OcculsionCost;
                 int temp = min(min1, min2);
                 int minimumCost = min(temp, min3);
                 cost[i][j] = minimumCost;
+                //Choose minimum cost so as to minimize number of horizontal and vertical discontinuities
                 if (minimumCost == min1)
                     direction[i][j] = 1;
                 if (minimumCost == min2)
@@ -334,6 +352,8 @@ void findPointsDynamic() {
                     direction[i][j] = 3;
             }
         }
+        
+        //Reconstruct to get disparity map for left and right images
         int p = w - 1, q = w - 1;
         while (p != 0 && q != 0) {
             if (direction[p][q] == 1) {
@@ -371,6 +391,7 @@ void findPointsDynamic() {
         //WinExec("magick \"./Output.ppm\" \"./Output.png\"", 1);
     }
 
+    //Basic conversion to generate point cloud
     for (int i = 0; i < h ; i++) {
         for (int j = w-1; j >=0 ;j--) {
 
@@ -397,7 +418,8 @@ void findPointsDynamic() {
 
     //stbi_image_free(left_image);
     //stbi_image_free(right_image);
-
+    
+    //Generate vao and vbo
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
     glGenBuffers(1, &vbo);
@@ -426,11 +448,6 @@ void processInput(GLFWwindow* window)
 
 int main() {
     
-    //float focalLength = 5806.559;//Initialize
-    //float prinPointX = 1429.219;//Initialize
-    //float prinPointY = 993.403;//Initialize
-    //float dOffset =  114.291;//Initialize
-    //float baseline = 174.019;//Initialize
     
     std::cout << "Enter focal length of camera" << "\n";
     std::cin >> focalLength;
@@ -452,8 +469,7 @@ int main() {
         return -1;
 
     loadImagesPNG(&left_image, &right_image, imgPathLeft, imgPathRight, texture, w, h, comp);
-    //loadImagesJPG(&left_image, &right_image, "./Images/L_1.jpg", "./Images/R_1.jpg", texture, w, h, comp);
-    //genCameraMatrices();
+
     //findPoints();
     findPointsDynamic();
     
