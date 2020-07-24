@@ -3,16 +3,15 @@
 #include <vector>
 #include <glad.h>
 #include <GLFW/glfw3.h>
+#include <string>
 
 #include <Windows.h>
 #include <fstream>
 #include "control.hpp"
 #include "Shader.h"
+#include "loadImages.hpp"
+
 #include <glm/gtc/matrix_transform.hpp>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
 
 using namespace std;
 
@@ -21,9 +20,6 @@ const int SCR_WIDTH = 1080;
 const int SCR_HEIGHT = 1080;
 
 int w, h, comp;
-
-//vector<unsigned char> left_image;
-//  vector<unsigned char> right_image;
 
 unsigned char* left_image;
 unsigned char* right_image;
@@ -90,40 +86,28 @@ int initialize() {
     return 1;
 }
 
-struct Ray {
-    glm::vec3 origin;
-    glm::vec3 direction;
-};
-
-glm::vec3 intersect(Ray& rayCamOne, Ray& rayCamTwo) {
-    float dx = rayCamTwo.origin.x - rayCamOne.origin.x;
-    float dy = rayCamTwo.origin.y - rayCamOne.origin.y;
-    float det = rayCamTwo.direction.x * rayCamOne.direction.y - rayCamTwo.direction.y * rayCamOne.direction.x;
-    if (det == 0)
-        return glm::vec3(0.0f);
-    float u = (dy * rayCamTwo.direction.x - dx * rayCamTwo.direction.y) / det;
-    float v = (dy * rayCamOne.direction.x - dx * rayCamOne.direction.y) / det;
-    return glm::vec3(rayCamOne.origin+u*rayCamOne.direction);
-}
-
 void findPoints() {
-    float** leftImage = new float * [h+8];
-    for (int i = 0; i < h+8; i++)
-        leftImage[i] = new float[w+8];
 
-    float** rightImage = new float * [h+8];
-    for (int i = 0; i < h+8; i++)
-        rightImage[i] = new float[w+8];
+    h += 8;
+    w += 8;
 
-    int** disp = new int* [h+8];
-    for (int i = 0; i < h+8; i++)
-        disp[i] = new int[w+8];
+    float** leftImage = new float * [h];
+    for (int i = 0; i < h; i++)
+        leftImage[i] = new float[w];
 
-    for (int i = h - 1 + 8;i >= 0;i--)
+    float** rightImage = new float * [h];
+    for (int i = 0; i < h; i++)
+        rightImage[i] = new float[w];
+
+    int** disp = new int* [h];
+    for (int i = 0; i < h; i++)
+        disp[i] = new int[w];
+
+    for (int i = h - 1 ;i >= 0;i--)
     {
-        for (int j = 0;j < w + 8;j++) {
+        for (int j = 0;j < w ;j++) {
 
-            if (i <= 3 || j <= 3 || h - 1 + 8 - i <= 3 || w - 1 + 8 - j <= 3)
+            if (i <= 3 || j <= 3 || h - 1 - i <= 3 || w - 1 - j <= 3)
             {
                 leftImage[i][j] = 0.0f;
                 rightImage[i][j] = 0.0f;
@@ -147,10 +131,10 @@ void findPoints() {
     ofstream Output_Image("Output.ppm");
     if (Output_Image.is_open())
     {
-        Output_Image << "P3\n" << w + 8 << " " << h + 8 << " 255\n";
+        Output_Image << "P3\n" << w  << " " << h  << " 255\n";
 
-        for (int i = 4;i < h + 8 - 4;i++) {
-            for (int j = 4;j < w + 8 - 4;j++) {
+        for (int i = 4;i < h  - 4;i++) {
+            for (int j = 4;j < w  - 4;j++) {
 
                 float arr[9][9] = { 0 };
                 int tempX = 0, tempY = 0;
@@ -207,8 +191,8 @@ void findPoints() {
             }
         }
         int maxVal = INT_MIN;
-        h += 8;
-        w += 8;
+        /*h += 8;
+        w += 8;*/
         for (int i = h - 1;i >= 0;i--) {
             for (int j = 0;j < w;j++) {
                 if (disp[i][j] > maxVal)
@@ -233,6 +217,10 @@ void findPoints() {
             }
         }
 
+        Output_Image.close();
+        WinExec("cd ..", 1);
+        WinExec("magick \"./Output.ppm\" \"./Output.png\"", 1);
+
         for (int i = 0; i < h; i++)
             delete[] leftImage[i];
         delete[] leftImage;
@@ -240,15 +228,8 @@ void findPoints() {
             delete[] rightImage[i];
         delete[] rightImage;
 
-
-
         for (int i = 4; i < h-4; i++) {
             for (int j = 4;j < w-4;j++) {
-
-                /*if (i <= 3 || j <= 3 || h - 1 - i <= 3 || w - 1 - j <= 3)
-                {
-                    continue;
-                }*/
 
                 float depth = baseline * focalLength / (disp[i][j] + dOffset);
 
@@ -267,98 +248,28 @@ void findPoints() {
             }
         }
 
-        
+        for (int i = 0; i < h; i++)
+            delete[] disp[i];
+        delete[] disp;
+
         //stbi_image_free(left_image);
         //stbi_image_free(right_image);
 
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
-
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
-        Output_Image.close();
-        WinExec("cd ..", 1);
-        WinExec("magick \"./Output.ppm\" \"./Output.png\"", 1);
+        
     }
     return;
 }
 
-void loadImagesPNG() {
-    string imageToLoad = "./Images/L_11.png";
-    left_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb_alpha);
-    if (left_image == nullptr) {
-        std::cout << "Failed to load left image" << "\n";
-        throw(string("Failed to load left image"));
-    }
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-    glEnable(GL_TEXTURE_2D);
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    if (comp == 3) {
-        left_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, left_image);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else if (comp == 4) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, left_image);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-
-    string imageToLoad2 = "./Images/R_11.png";
-    right_image = stbi_load(imageToLoad2.c_str(), &w, &h, &comp, STBI_rgb_alpha);
-    if (right_image == nullptr) {
-        std::cout << "Failed to load right image"<<"\n";
-        throw(string("Failed to load right image"));
-    }
-    if (comp == 3) {
-        right_image = stbi_load(imageToLoad2.c_str(), &w, &h, &comp, STBI_rgb);
-    }
-    std::cout << comp << "\n";
-
-    return;
-}
-
-void loadImagesJPG() {
-    string imageToLoad = "./Images/L_8.jpg";
-    left_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb);
-    if (left_image == nullptr) {
-        throw(string("Failed to load left image"));
-    }
-
-    glEnable(GL_TEXTURE_2D);
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    if (comp == 3) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w - 8, h - 8, 0, GL_RGB, GL_UNSIGNED_BYTE, left_image);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else if (comp == 4) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w - 8, h - 8, 0, GL_RGBA, GL_UNSIGNED_BYTE, left_image);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-
-    imageToLoad = "./Images/R_1.jpg";
-    right_image = stbi_load(imageToLoad.c_str(), &w, &h, &comp, STBI_rgb);
-    if (right_image == nullptr) {
-        throw(string("Failed to load right image"));
-    }
-    return;
-}
 
 void genCameraMatrices() {
+    //Implement non corrected images later
     cameraOne = glm::mat3(glm::vec3(focalLength, 0.0f, prinPointX), glm::vec3(0.0f, focalLength, prinPointY), glm::vec3(0.0f, 0.0f, 1.0f));
     cameraTwo = glm::mat3(glm::vec3(focalLength, 0.0f, prinPointX + dOffset), glm::vec3(0.0f, focalLength, prinPointY), glm::vec3(0.0f, 0.0f, 1.0f));
 
@@ -378,7 +289,8 @@ int main() {
     if (initialize() < 0)
         return -1;
 
-    loadImagesPNG();
+    loadImagesPNG(&left_image, &right_image, "./Images/L_11.png", "./Images/R_11.png", texture, w, h, comp);
+    //loadImagesJPG(&left_image, &right_image, "./Images/L_1.jpg", "./Images/R_1.jpg", texture, w, h, comp);
     genCameraMatrices();
     findPoints();
     

@@ -39,6 +39,8 @@ bld/
 Textures/
 Images/
 Outputs/
+glad/
+glfw_64/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
