@@ -12,3 +12,4 @@ How to run this :
 9. Input the camera parameters and relative path of the images.
 10. Wait for 15-30 sec.
 11. Use WSAD keys and mouse to move around the scene.
+12. Disparity map generated in Output.ppm file in the /Release folder.
