@@ -217,8 +217,8 @@ void findPoints() {
         }
 
         Output_Image.close();
-        WinExec("cd ..", 1);
-        WinExec("magick \"./Output.ppm\" \"./Output.png\"", 1);
+        //WinExec("cd ..", 1);
+        //WinExec("magick \"./Output.ppm\" \"./Output.png\"", 1);
 
         for (int i = 0; i < h; i++)
             delete[] leftImage[i];
@@ -367,8 +367,8 @@ void findPointsDynamic() {
             }
         }
         Output_Image.close();
-        WinExec("cd ..", 1);
-        WinExec("magick \"./Output.ppm\" \"./Output.png\"", 1);
+        //WinExec("cd ..", 1);
+        //WinExec("magick \"./Output.ppm\" \"./Output.png\"", 1);
     }
 
     for (int i = 0; i < h ; i++) {
