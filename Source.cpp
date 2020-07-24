@@ -198,7 +198,7 @@ void findPoints() {
                     maxVal = disp[i][j];
             }
         }
-        std::cout << maxVal;
+        //std::cout << maxVal;
 
         float** disp2 = new float* [h];
         for (int i = 0; i < h; i++)
@@ -426,12 +426,34 @@ void processInput(GLFWwindow* window)
 
 int main() {
     
+    //float focalLength = 5806.559;//Initialize
+    //float prinPointX = 1429.219;//Initialize
+    //float prinPointY = 993.403;//Initialize
+    //float dOffset =  114.291;//Initialize
+    //float baseline = 174.019;//Initialize
+    
+    std::cout << "Enter focal length of camera" << "\n";
+    std::cin >> focalLength;
+    std::cout << "Enter offset between cameras" << "\n";
+    std::cin >> dOffset;
+    std::cout << "Enter baseline" << "\n";
+    std::cin >> baseline;
+
+    string imgPathLeft, imgPathRight;
+    std::cout << "Enter relative path of left image" << "\n";
+    std::cin >> imgPathLeft;
+
+    std::cout << "Enter relative path of right image" << "\n";
+    std::cin >> imgPathRight;
+
+    std::cout << "\n\n\n";
+
     if (initialize() < 0)
         return -1;
 
-    loadImagesPNG(&left_image, &right_image, "./Images/L_3.png", "./Images/R_3.png", texture, w, h, comp);
+    loadImagesPNG(&left_image, &right_image, imgPathLeft, imgPathRight, texture, w, h, comp);
     //loadImagesJPG(&left_image, &right_image, "./Images/L_1.jpg", "./Images/R_1.jpg", texture, w, h, comp);
-    genCameraMatrices();
+    //genCameraMatrices();
     //findPoints();
     findPointsDynamic();
     

@@ -49,9 +49,10 @@ void loadImagesPNG(unsigned char** left_image, unsigned char** right_image, stri
     if (comp == 3) {
         *right_image = stbi_load(imageToLoadRight.c_str(), &width, &height, &comp, STBI_rgb);
     }
-    std::cout << comp << "\n";
+    //std::cout << comp << "\n";
 
     return;
+
 }
 
 void loadImagesJPG(unsigned char** left_image, unsigned char** right_image, string imageToLoadLeft, string imageToLoadRight, GLuint& texture, int& width, int& height, int& comp) {

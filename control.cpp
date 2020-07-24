@@ -11,7 +11,7 @@ using namespace std;
 glm::mat4 viewMatrix;
 glm::mat4 projMatrix;
 
-glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 position = glm::vec3(0.0f, 0.0f, 500.0f);
 
 float horizontal = 3.14f;
 float vertical = 0.0f;
@@ -76,6 +76,6 @@ void calcMatrixFromInp(GLFWwindow* window) {
 	center = position + direction;
 	viewMatrix = glm::lookAt(position, position + direction, up);
 	lastTime = current;
-	//projMatrix = glm::perspective(glm::radians(FoV), (float)(1920.0 / 1080.0), 0.1f, 10000.0f);
-	projMatrix = glm::ortho(-300.0f,300.0f,-300.0f,300.0f,-300.0f,300.0f);
+	projMatrix = glm::perspective(glm::radians(FoV), (float)(1920.0 / 1080.0), 0.1f, 10000.0f);
+	//projMatrix = glm::ortho(-300.0f,300.0f,-300.0f,300.0f,-300.0f,300.0f);
 }
