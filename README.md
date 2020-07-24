@@ -9,8 +9,9 @@ How to run this :
 6. Make sure glm is in Visual Studio include directory.
 7. Download the stb_image.h file from the stb repository and put it in the cloned repo.
 8. Open the .sln file and build.
-9. Run the .exe file in the /Release folder.
-10. Input the camera parameters and relative path of the images.
-11. Wait for 15-30 sec.
-12. Use WSAD keys and mouse to move around the scene.
-13. Disparity map generated in Output.ppm file in the /Release folder.
+9. Put the vertex shader and fragment shader files in the /Release folder.
+10. Run the .exe file in the /Release folder.
+11. Input the camera parameters and relative path of the images.
+12. Wait for 15-30 sec.
+13. Use WSAD keys and mouse to move around the scene.
+14. Disparity map generated in Output.ppm file in the /Release folder.
