@@ -45,7 +45,7 @@ GLuint texture;
 float minDepth = FLT_MAX;
 float maxDepth = FLT_MIN;
 
-float maxX=INT_MIN, maxY=INT_MIN;
+float maxX=FLT_MIN, maxY=FLT_MIN;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -191,8 +191,7 @@ void findPoints() {
             }
         }
         int maxVal = INT_MIN;
-        /*h += 8;
-        w += 8;*/
+        
         for (int i = h - 1;i >= 0;i--) {
             for (int j = 0;j < w;j++) {
                 if (disp[i][j] > maxVal)
@@ -229,7 +228,7 @@ void findPoints() {
         delete[] rightImage;
 
         for (int i = 4; i < h-4; i++) {
-            for (int j = 4;j < w-4;j++) {
+            for (int j = 4;j <w-4 ;j++) {
 
                 float depth = baseline * focalLength / (disp[i][j] + dOffset);
 
@@ -251,9 +250,6 @@ void findPoints() {
         for (int i = 0; i < h; i++)
             delete[] disp[i];
         delete[] disp;
-
-        //stbi_image_free(left_image);
-        //stbi_image_free(right_image);
 
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
@@ -289,18 +285,9 @@ void findPointsDynamic() {
     {
         for (int j = 0;j < w;j++) {
 
-            /*if (i <= 3 || j <= 3 || h - 1 - i <= 3 || w - 1 - j <= 3)
-            {
-                leftImage[i][j] = 0.0f;
-                rightImage[i][j] = 0.0f;
-                disp[i][j] = 0;
-                dispRight[i][j] = 0;
-                continue;
-            }*/
             float leftImgPixel = 0.2126 * (float)*left_image + 0.7152 * (float)*(left_image + 1) + 0.0722 * (float)*(left_image + 2);
             float rightImgPixel = 0.2126 * (float)*right_image + 0.7152 * (float)*(right_image + 1) + 0.0722 * (float)*(right_image + 2);
             leftImage[i][j] = leftImgPixel;
-            //std::cout << leftImage[i][j] << "\n";
             rightImage[i][j] = rightImgPixel;
             disp[i][j] = 0;
             left_image += 3;
@@ -313,7 +300,7 @@ void findPointsDynamic() {
         }
     }
 
-    int maxCost = 20;
+    int OcculsionCost = 40;
     for (int row = 0;row < h; row++) {
 
         int** cost = new int* [w];
@@ -325,8 +312,8 @@ void findPointsDynamic() {
             direction[i] = new int[w];
 
         for (int i = 1;i < w;i++) {
-            cost[i][0] = i * maxCost;
-            cost[0][i] = i * maxCost;
+            cost[i][0] = i * OcculsionCost;
+            cost[0][i] = i * OcculsionCost;
         }
 
         for (int i = 1; i < w; i++)
@@ -334,9 +321,8 @@ void findPointsDynamic() {
             for (int j = 1; j < w; j++)
             {
                 int min1 = cost[i - 1][j - 1] + abs((int)leftImage[row][i] - (int)rightImage[row][j]);
-                //std::cout << (int)leftImage[row][i] <<" "<< (int)rightImage[row][j]<<"\n";
-                int min2 = cost[i - 1][j] + maxCost;
-                int min3 = cost[i][j-1] + maxCost;
+                int min2 = cost[i - 1][j] + OcculsionCost;
+                int min3 = cost[i][j-1] + OcculsionCost;
                 int temp = min(min1, min2);
                 int minimumCost = min(temp, min3);
                 cost[i][j] = minimumCost;
@@ -347,7 +333,6 @@ void findPointsDynamic() {
                 if (minimumCost == min3)
                     direction[i][j] = 3;
             }
-            //std::cout << "\n";
         }
         int p = w - 1, q = w - 1;
         while (p != 0 && q != 0) {
@@ -386,8 +371,8 @@ void findPointsDynamic() {
         WinExec("magick \"./Output.ppm\" \"./Output.png\"", 1);
     }
 
-    for (int i = 4; i < h - 4; i++) {
-        for (int j = 4;j < w - 4;j++) {
+    for (int i = 0; i < h ; i++) {
+        for (int j = w-1; j >=0 ;j--) {
 
             float depth = baseline * focalLength / (disp[i][j] + dOffset);
 
@@ -420,8 +405,6 @@ void findPointsDynamic() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
-
-
     return;
 }
 
@@ -446,7 +429,7 @@ int main() {
     if (initialize() < 0)
         return -1;
 
-    loadImagesPNG(&left_image, &right_image, "./Images/L_4.png", "./Images/R_4.png", texture, w, h, comp);
+    loadImagesPNG(&left_image, &right_image, "./Images/L_3.png", "./Images/R_3.png", texture, w, h, comp);
     //loadImagesJPG(&left_image, &right_image, "./Images/L_1.jpg", "./Images/R_1.jpg", texture, w, h, comp);
     genCameraMatrices();
     //findPoints();
